@@ -39,7 +39,7 @@ scraper = cloudscraper.create_scraper(
     debug=False
 )
 
-WALLET_ADDRESS = os.getenv('WALLET_ADDRESS', '95L9VfK5Dsshpeiaicsrz9E4D2iTtp9iapBUAtmihmcw')
+WALLET_ADDRESS = os.getenv('WALLET_ADDRESS', 'GGTLr1eANM7qNpavRmracbSqRxyLGZ3xhzpeBA1Rnu9t')
 
 @app.route('/api/wallet-activity', methods=['GET'])
 def get_wallet_activity():
