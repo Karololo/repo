@@ -10,10 +10,18 @@ import cloudscraper
 import logging
 import os
 import time
-from tenacity import retry, stop_after_attempt, wait_exponential
 
 app = Flask(__name__, static_folder='.', static_url_path='')
-CORS(app)  # Enable CORS for frontend
+# Enable CORS for all origins (needed for frontend)
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+
+# Add CORS headers manually to all responses (CRITICAL for Render)
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+    return response
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -40,6 +48,9 @@ def get_wallet_activity():
         wallet = request.args.get('wallet', WALLET_ADDRESS)
         limit = request.args.get('limit', '50')
         cost = request.args.get('cost', '10')
+        
+        # Log the wallet being requested for debugging
+        logger.info(f"Requested wallet: {wallet}")
         
         url = f"https://gmgn.ai/vas/api/v1/wallet_activity/sol?type=buy&type=sell&device_id=5f314746-4f28-407f-bb42-6fa36b4c12e5&fp_did=34d0f8ae922f6b5c5397b8cf5cde1117&client_id=gmgn_web_20260105-9509-b9c2d27&from_app=gmgn&app_ver=20260105-9509-b9c2d27&tz_name=Europe%2FWarsaw&tz_offset=3600&app_lang=en-US&os=web&worker=0&wallet={wallet}&limit={limit}&cost={cost}"
         
@@ -120,11 +131,6 @@ def get_wallet_activity():
         logger.error(f"Error fetching wallet activity: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@app.route('/')
-def index():
-    """Serve the main HTML file"""
-    return send_from_directory('.', 'index.html')
-
 @app.route('/api/profit-stats', methods=['GET'])
 def get_profit_stats():
     """Proxy endpoint for GMGN profit stats API"""
@@ -149,6 +155,7 @@ def get_profit_stats():
             'Sec-Fetch-Site': 'same-origin'
         }
         
+        logger.info(f"Requested wallet for profit stats: {wallet}")
         logger.info(f"Fetching profit stats for {wallet}")
         
         # Retry logic for Cloudflare challenges with longer waits
@@ -210,6 +217,11 @@ def get_profit_stats():
 def health():
     """Health check endpoint"""
     return jsonify({'status': 'ok'})
+
+@app.route('/')
+def index():
+    """Serve the main HTML file (optional - not needed for API-only service)"""
+    return jsonify({'message': 'Klaude Proxy API', 'endpoints': ['/api/wallet-activity', '/api/profit-stats', '/health']})
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
