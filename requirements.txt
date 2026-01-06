@@ -1,0 +1,6 @@
+flask==3.0.0
+flask-cors==4.0.0
+cloudscraper==1.2.71
+tenacity==8.2.3
+fake-useragent==1.4.0
+
